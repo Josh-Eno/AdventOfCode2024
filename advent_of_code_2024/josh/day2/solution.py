@@ -27,7 +27,7 @@ def is_safe_dampened(values: List[int]) -> bool:
 values = list(map(lambda x: list(
             map(int, x.split())
         ), 
-        open("./advent_of_code/src/josh/day2/input.txt").read().splitlines()))
+        open("./advent_of_code_2024/josh/day2/input.txt").read().splitlines()))
 
 safe_vals = list(filter(is_safe, values))
 damped_safe_vals = list(filter(is_safe_dampened, values))

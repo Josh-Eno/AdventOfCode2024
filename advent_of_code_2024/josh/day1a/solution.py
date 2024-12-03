@@ -1,4 +1,4 @@
-list_lines = open("./advent_of_code/src/josh/day1a/input.txt").read().splitlines()
+list_lines = open("./advent_of_code_2024/josh/day1a/input.txt").read().splitlines()
 
 # Split lines, delimited by '   '
 split_lines = [x.split("   ") for x in list_lines]
