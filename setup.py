@@ -4,7 +4,7 @@ with open("README.md", 'r') as f:
     long_description = f.read()
 
 setup(
-   name='advent_of_code',
+   name='advent_of_code_2024',
    version='1.0',
    description='A module for AdventOfCode solutions',
    license="MIT",
