@@ -3,10 +3,10 @@ import re
 memory = open("./advent_of_code_2024/josh/day3/input.txt").read()
 
 # Finds patterns "mul(<int>,<int>)", "do()", and "don't()"
-matches = re.findall(r"mul\(\d+,\d+\)|do\(\)|don't\(\)", memory)
+matches = re.findall(r"mul\(\d{1,3},\d{1,3}\)|do\(\)|don't\(\)", memory)
 
 # Change to True for part 2
-is_part2 = False
+is_part2 = True
 ignore = False
 sum = 0
 
