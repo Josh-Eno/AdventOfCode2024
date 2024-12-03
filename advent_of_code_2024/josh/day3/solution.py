@@ -2,15 +2,17 @@ import re
 
 memory = open("./advent_of_code_2024/josh/day3/input.txt").read()
 
+# Finds patterns "mul(<int>,<int>)", "do()", and "don't()"
 matches = re.findall(r"mul\(\d+,\d+\)|do\(\)|don't\(\)", memory)
 
+# Change to True for part 2
+is_part2 = False
 ignore = False
 sum = 0
 
-# For part 1, just change line 13 to ignore = False so we never ignore.
-for idx, match in enumerate(matches):
+for match in matches:
     if match == "don't()":
-        ignore = True
+        ignore = is_part2
     elif match == "do()":
         ignore = False
     else:
