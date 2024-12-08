@@ -75,10 +75,10 @@ def find_x_mas(grid):
 
 input = open('input.txt', 'r').read()
 # Build the Grid!
-grid = [list(row) for row in input.splitlines()]
+original_grid = [list(row) for row in input.splitlines()]
 
-xmas_occurrences = find_xmas(grid)
-x_mas_occurrences = find_x_mas(grid)
+xmas_occurrences = find_xmas(original_grid)
+x_mas_occurrences = find_x_mas(original_grid)
 
 print("Solution 1: " + str(xmas_occurrences))
 print("Solution 2: " + str(x_mas_occurrences))
