@@ -8,6 +8,7 @@ class Waypoint:
         self.exits: List['Waypoint'] = []
         self.adjacents = []
         self.trail_count = 0
+        self.trail_rating = 0
 
         if row > 0:
             self.adjacents.append((row - 1, col))
@@ -36,7 +37,9 @@ class Waypoint:
             frontier = next_frontier
             next_frontier = []
         
-        self.trail_count = len(frontier) if part_two else len(set(frontier))
+        self.trail_count = len(set(frontier))
+        self.trail_rating = len(frontier)
+
         return self.trail_count
 
 input = [
@@ -68,7 +71,7 @@ trails = 0
 rating = 0
 for wp in trailheads:
     trails += wp.count_trails()
-    rating += wp.count_trails(True)
+    rating += wp.trail_rating
 
 print(f"Total trails: {trails}")
 print(f"Total rating: {rating}")
