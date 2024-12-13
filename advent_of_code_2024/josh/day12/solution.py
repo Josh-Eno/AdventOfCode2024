@@ -9,10 +9,13 @@ class Component:
         self.area = len(self.plots)
         self.perimeter_plots: Set[tuple] = set()
         self.perimeter = self.calc_perimeter()
-        self.sides = self.calc_sides()
+        self.sides = self.calc_sides_edges()
+        self.corners = self.calc_corners()
         self.cost_1 = self.area * self.perimeter
         self.cost_2 = self.area * self.sides
-        # print(f"origin: {r}, {c}, char: {self.char}, area: {self.area}, perimeter: {self.perimeter}, sides: {self.sides}, cost 1: {self.cost_1}, cost 2: {self.cost_2}")
+        self.cost_3 = self.area * self.corners
+        if self.sides != self.corners:
+            print(f"origin: {r}, {c}, char: {self.char}, area: {self.area}, perimeter: {self.perimeter}, sides: {self.sides}, corners: {self.corners}, cost 1: {self.cost_1}, cost 2: {self.cost_2}, cost 3: {self.cost_3}")
 
     def grow(self):
         new_frontier: Set[tuple] = self.plots
@@ -46,7 +49,7 @@ class Component:
 
         return perimeter
 
-    def calc_sides(self):
+    def calc_sides_edges(self):
         shared_sides = 0
         considered: Set[tuple] = set()
         for plot in self.perimeter_plots:
@@ -68,6 +71,39 @@ class Component:
                 #     print(f"shared side between ({plot[0]}, {plot[1]}) and ({neighbor[0]}, {neighbor[1]})")
         
         return self.perimeter - shared_sides
+
+    def calc_corners(self):
+        corners = 0
+        for plot in self.perimeter_plots:
+            # Check outer corners
+            if self.open_up(plot):
+                # Outer corner |—
+                if self.open_left(plot):
+                    corners += 1
+                # Outer corner —|
+                if self.open_right(plot):
+                    corners += 1
+                # Inner orner _|, from below
+                if (plot[0] - 1, plot[1] + 1) in self.perimeter_plots and (plot[0], plot[1] + 1) in self.plots:
+                    corners += 1
+                # Inner corner |_, from below
+                if (plot[0] - 1, plot[1] - 1) in self.perimeter_plots and (plot[0], plot[1] - 1) in self.plots:
+                    corners += 1
+            if self.open_down(plot):
+                # Outer corner |_
+                if self.open_left(plot):
+                    corners += 1
+                # Outer corner _|
+                if self.open_right(plot):
+                    corners += 1
+                # Inner corner —|
+                if (plot[0] + 1, plot[1] + 1) in self.perimeter_plots and (plot[0], plot[1] + 1) in self.plots:
+                    corners += 1
+                # Inner corner |—
+                if (plot[0] + 1, plot[1] - 1) in self.perimeter_plots and (plot[0], plot[1] - 1) in self.plots:
+                    corners += 1
+         
+        return corners
     
     def open_right(self, plot: tuple) -> bool:
         return plot[1] == len(self.garden[0]) - 1 or self.garden[plot[0]][plot[1]] != self.garden[plot[0]][plot[1] + 1]
@@ -112,6 +148,21 @@ input = [
     "MIIISIJEEE",
     "MMMISSJEEE"
 ]
+input = [
+    "EEEEE",
+    "EXXXX",
+    "EEEEE",
+    "EXXXX",
+    "EEEEE"
+]
+input = [
+    "AAAAAA",
+    "AAABBA",
+    "AAABBA",
+    "ABBAAA",
+    "ABBAAA",
+    "AAAAAA"
+]
 input = open("./advent_of_code_2024/josh/day12/input.txt").read().splitlines()
 
 seen_plots: Set[tuple] = set()
@@ -123,9 +174,10 @@ for r in range(len(input)):
             seen_plots.update(comp.plots)
             components.append(comp)
 
-print(len(components))
 p1_cost = sum(map(lambda comp: comp.cost_1, components))
 p2_cost = sum(map(lambda comp: comp.cost_2, components))
+p3_cost = sum(map(lambda comp: comp.cost_3, components))
 
 print(f"cost 1: {p1_cost}")
 print(f"cost 2: {p2_cost}")  
+print(f"cost 3: {p3_cost}")  
