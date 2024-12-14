@@ -96,13 +96,13 @@ if part_1:
 # part 2:
 regex = re.compile(r"#{8,}")
 output = open("./advent_of_code_2024/josh/day14/output.txt", "w")
-for i in range(10000):
+for i in range(1, x_dim * y_dim):
     for robot in robots:
         robot.move(1)
     state = render(robots, x_dim, y_dim)
     matches = len(regex.findall(state))
     if matches > 1:
-        output.write(f"moves: {i + 1} \n")
+        output.write(f"moves: {i} \n")
         output.write(state + "\n\n")
         print(state)
 
