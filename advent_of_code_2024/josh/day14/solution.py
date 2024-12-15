@@ -39,6 +39,17 @@ class Robot:
             elif self.y < self.y_dim / 2:
                 return 2
 
+def calc_score(robots: List[Robot]) -> int:
+    quad_cnt = defaultdict(int)
+    for robot in robots:
+        quad_cnt[robot.get_quadrant()] += 1
+
+    score = 1
+    for q in range(1,5):
+        score *= quad_cnt[q]
+    
+    return score
+
 def render(robots: List[Robot], x_dim: int, y_dim: int) -> str:
     grid = [["." for _ in range(x_dim)] for _ in range(y_dim)]
     
@@ -81,28 +92,28 @@ for line in input:
 # Part 1:
 part_1 = False
 if part_1:
-    quad_cnt = defaultdict(int)
-
     for robot in robots:
         robot.move(100)
-        quad_cnt[robot.get_quadrant()] += 1
 
-    score = 1
-    for q in range(1,5):
-        score *= quad_cnt[q]
-
+    score = calc_score(robots)
     print(score)
 
 # part 2:
-regex = re.compile(r"#{8,}")
 output = open("./advent_of_code_2024/josh/day14/output.txt", "w")
+min_score = len(robots) ** 4
+min_second = 0
+min_state = ""
 for i in range(1, x_dim * y_dim):
     for robot in robots:
         robot.move(1)
-    state = render(robots, x_dim, y_dim)
-    matches = len(regex.findall(state))
-    if matches > 1:
-        output.write(f"moves: {i} \n")
-        output.write(state + "\n\n")
-        print(state)
 
+    score = calc_score(robots)
+    if score < min_score:
+        min_score = score
+        min_second = i
+        min_state = render(robots, x_dim, y_dim)
+
+output.write(f"moves: {min_second} \n")
+output.write(min_state + "\n\n")
+print(f"moves: {min_second}")
+print(min_state)
