@@ -1,0 +1,262 @@
+import os
+import re
+from sty import fg
+import heapq
+from collections import defaultdict
+import networkx
+
+class Vec2:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __add__(self, o) -> "Vec2":
+        return Vec2(self.x + o.x, self.y + o.y)
+    
+    def opposite(self) -> "Vec2":
+        return Vec2(self.x * -1, self.y * -1)
+    
+    def inBounds(self, endBound) -> bool:
+        return (0 <= self.x < endBound.x and 0 <= self.y < endBound.y)
+    
+    def __eq__(self, other):
+        if type(other) == Vec2:
+            return (self.x == other.x and self.y == other.y)
+        elif type(other) == tuple or type(other) == list:
+            return (self.x == other[0] and self.y == other[1])
+    
+    def toTuple(self):
+        return (self.x, self.y)
+    
+    def __hash__(self):
+        return f"{self.x*517+self.y*217}{self.y*255+self.x*1723}" # Just to make them unique - so Vec2(1, 10) doesn't equal the hash of vector Vec2(11, 0)
+    
+    def __str__(self):
+        return f"({self.x}, {self.y})"
+
+def fromTuple(inp: tuple):
+    return Vec2(inp[0], inp[1])
+
+class DijNode:
+    def __init__(self, pos: Vec2, dir: Vec2, distToStart: int):
+        self.pos = pos
+        # Direction is where it CAME FROM
+        self.dir = dir
+        self.dist = distToStart
+        self.edges = []
+        self.prev = None
+    
+    def __hash__(self) -> int:
+        return (self.pos.x + 197)*(self.pos.y + 152)*(self.dir.x+172)*(self.dir.y+161)*(self.dist+23)
+
+    def __gt__(self, other) -> bool:
+        return self.dist > other.dist
+    
+    def __eq__(self, other) -> bool:
+        return self.dist == other.dist
+    
+    def __str__(self):
+        return f"{self.pos}"
+
+# Every edge has a weight based on the direction you are coming from
+class Edge:
+    def __init__(self, node1: DijNode, node2: DijNode, weight: int): # From node 1 to 2 ALWAYS
+        self.node1 = node1
+        self.node2 = node2
+        self.weight = weight
+    
+    def __gt__(self, other) -> bool:
+        return self.weight > other.weight
+    
+    def __eq__(self, other) -> bool:
+        return (self.weight == other.weight and self.node1 == other.node1 and self.node2 == other.node2)
+    
+    def __str__(self):
+        return f"{self.node1},{self.node2}"
+
+# This time, I'm building this class with directionality from the start.
+# Every node has a direction and a list of edges it can go to
+class DijkstraMap:
+    def __init__(self):
+        self.nodes: dict[tuple: DijNode] = dict([]) # (x, y, dirx, diry) : [DijNode]
+        self.edges = []
+
+    def buildDistances(self, lines, start: Vec2, end: Vec2) -> None:
+        directions = [[-1, 0], [0, 1], [1, 0], [0, -1]]
+        directionsVec = [Vec2(-1, 0), Vec2(0, 1), Vec2(1, 0), Vec2(0, -1)]
+
+        startNode = None
+        endNodes = []
+
+        bounds = Vec2(len(lines), len(lines[0]))
+        # Fill in all nodes - every node is a position and a direction, so for each ., e, or s, make 4 seperate nodes each with edges
+        for line in range(len(lines)):
+            for char in range(len(lines[line])):
+                if lines[line][char] == ".":
+                    # Check for each direction: if its in bounds, if there are any already existing nodes for the current spot, and if there should be
+                    # then, create a node here if there should be one
+                    for vec in directionsVec:
+                        if (Vec2(line, char) + vec).inBounds(bounds) and (line, char, vec.x, vec.y) not in self.nodes.keys() and lines[line+vec.x][char+vec.y] in [".", "E"]:
+                            # To start, all the weights will be this large number
+                            # Also, make a node GOING this way AND going AWAY from this
+                            self.nodes[(line, char, vec.x, vec.y)] = DijNode(Vec2(line, char), vec, 10000000)
+                            self.nodes[(line, char, vec.opposite().x, vec.opposite().y)] = DijNode(Vec2(line, char), vec.opposite(), 10000000)
+                            # Adding the edges comes later
+
+                elif lines[line][char] == "S":
+                    startNode = DijNode(Vec2(line, char), Vec2(0, 1), 0)
+                    self.nodes[(line, char, 0, 1)] = startNode
+                elif lines[line][char] == "E":
+
+                    endNodes = []
+                    for dir in directionsVec:
+                        if (end + dir).inBounds(bounds) and lines[line+dir.x][char+dir.y] in [".", "S"]:
+                            endNodes.append(DijNode(Vec2(line, char), dir, 10000000))
+                            endNodes.append(DijNode(Vec2(line, char), dir.opposite(), 10000000))
+                    
+                    for node in endNodes:
+                        self.nodes[(node.pos.x, node.pos.y, node.dir.x, node.dir.y)] = node
+
+        # Now, go through every node and add edges
+        for key in self.nodes.keys():
+            node = self.nodes[key]
+            #print(node.pos, end=" ")
+            # Check each directions
+            for dir in directionsVec:
+                # Check if it is in bounds, then check if there is a node there
+                if (node.pos + dir).inBounds(bounds) and (node.pos.x + dir.x, node.pos.y + dir.y, dir.x, dir.y) in self.nodes.keys():
+                    node2 = self.nodes[(node.pos.x + dir.x, node.pos.y + dir.y, dir.x, dir.y)]
+                    weight = 1001
+                    if node.dir == dir:
+                        weight = 1
+                    elif node.dir == dir.opposite():
+                        weight = 2002 # This should never happen, it has 0 reason to move backwards :)
+                    edgeToAdd = Edge(node, node2, weight)
+                    node.edges.append(edgeToAdd)
+                    self.edges.append(edgeToAdd)
+
+        #for edge in self.edges:
+        #    print(edge, end=",  ")
+        print(f"Edges was {len(self.edges)} elements long!")
+
+        # Both of these sets contain nodes
+        alreadyVisited = set([])
+        yetToVisit = set([])
+
+        yetToVisit.add(startNode) # Add start node
+
+        # Now that all of our nodes and edges are properly filled out, we start at the start node
+        # Add to yetToVisit based on edges
+        # Set previous nodes of each node and dist to the start node as we go as well
+        addedCount = 0
+        while len(yetToVisit) > 0:
+            element = yetToVisit.pop() # The next node we are working with
+            # Assume that this node has already had its weight set - now, go through it's neighbors and set their weights accordingly, set their previous accordingly, and add them to yetToVisit
+            for edge in element.edges:
+                if (element.dist + edge.weight) < edge.node2.dist:
+                    edge.node2.prev = element
+                    edge.node2.dist = element.dist + edge.weight
+                if not (edge.node2 in alreadyVisited):
+                    addedCount += 1
+                    yetToVisit.add(edge.node2)
+            
+            alreadyVisited.add(element) # Seems unnecissary but ok
+        print(f"Added count was {addedCount}")
+
+    def getLowestDist(self, pos: Vec2):
+        dirs = [Vec2(-1, 0), Vec2(0, 1), Vec2(1, 0), Vec2(0, -1)]
+        minimum = 10000000
+        for dir in dirs:
+            if (pos.x, pos.y, dir.x, dir.y) in self.nodes.keys():
+                val = self.nodes[(pos.x, pos.y, dir.x, dir.y)].dist
+        return val
+    
+    def getPrev(self, pos: Vec2, dir: Vec2):
+        if (pos.x-dir.x, pos.y-dir.y, dir.x, dir.y) in self.nodes.keys():
+            return self.nodes[(pos.x-dir.x, pos.y-dir.y, dir.x, dir.y)]
+        else:
+            return None
+
+def objOne(fileContent: str):
+    lines = re.split("\n", fileContent)
+    startCoords = (0, 0)
+    endCoords = (0, 0)
+    for line in range(len(lines)):
+        if lines[line].count('S') != 0:
+            startCoords = (line, lines[line].index('S'))
+        elif lines[line].count('E') != 0:
+            endCoords = (line, lines[line].index('E'))
+    
+    coordMap = DijkstraMap()
+    coordMap.buildDistances(lines, Vec2(startCoords[0], startCoords[1]), Vec2(endCoords[0], endCoords[1]))
+    endDist = coordMap.getLowestDist(Vec2(endCoords[0], endCoords[1]))
+
+    for line in range(len(lines)):
+        for char in range(len(lines[line])):
+            if lines[line][char] == "#":
+                print(fg(255, 255, 255) + ' # ', end="")
+            #if not (((line, char) in solutionSet) or ((line, char) in testSet)):
+            #    print(fg(255, 255, 255) + lines[line][char] + " ", end=" ")
+            else:
+                cap = 10000
+                colorTerm = fg(255, 255, 255)
+                posScore = coordMap.getLowestDist(fromTuple((line, char)))
+                colorTerm = fg(int(posScore / (cap/255)) % 255, 100, 255 - int(posScore / (cap/255)) % 255)
+                if ((line, char) == endCoords):
+                    colorTerm = fg(0, 255, 0)
+                rightEdgeExists = False
+                leftEdgeExists = False
+                print(colorTerm + (" " if not leftEdgeExists else "-") + str(posScore)[-1:], end=(" " if not rightEdgeExists else "-"))
+        print()
+    
+    print(endDist)
+    print(coordMap.getLowestDist(Vec2(2, 13)))
+    #print(coordMap.get(testElement))
+    
+    # Cheaty method
+    #cheesyObjOne(lines)
+
+def objProper(fileContent: str):
+    # Credit goes to https://github.com/fuglede/adventofcode/blob/master/2024/day16/solutions.py 
+    # This isn't quite verbatim, but basically is
+    lines = re.split("\n", fileContent)
+    directions = (1, -1, 1j, -1j) # j is special
+    graph = networkx.DiGraph()
+    for i, line in enumerate(lines):
+        for j, char in enumerate(line):
+            if char == "#":
+                continue
+            z = i + 1j * j
+            if char == "S":
+                start = (z, 1j)
+            if char == "E":
+                end = z
+            for dir in directions:
+                graph.add_node((z, dir))
+
+    for z, dir in graph.nodes:
+        if (z + dir, dir) in graph.nodes:
+            graph.add_edge((z, dir), (z + dir, dir), weight=1)
+        for rot in -1j, 1j:
+            graph.add_edge((z, dir), (z, dir * rot), weight=1000)
+
+    for dir in directions:
+        graph.add_edge((end, dir), "end", weight=0)
+
+    # Part 1
+    print(networkx.shortest_path_length(graph, start, "end", weight="weight"))
+
+    # Part2
+    print(
+        len(
+            {
+                z
+                for path in networkx.all_shortest_paths(graph, start, "end", weight="weight")
+                for z, _ in path[:-1]
+            }
+        )
+    )
+
+with open(os.path.join(os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))), "Day16.txt"), "r") as file:
+    #objOne(file.read())
+    objProper(file.read())
